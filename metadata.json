@@ -1,0 +1,5 @@
+{
+  "name": "OTT Finder",
+  "description": "An OTT finder platform for movies and series. Search for a title to discover which streaming service it's available on, with results powered by real-time web data via Gemini.",
+  "requestFramePermissions": []
+}
