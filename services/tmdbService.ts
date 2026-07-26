@@ -1,12 +1,17 @@
-const API_KEY = '3930c1be5b3fe928ba94e2558376f5a9';
+const API_KEY = import.meta.env.VITE_TMDB_API_KEY;
 const BASE_URL = 'https://api.themoviedb.org/3';
 const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
 
 export const fetchPosterPath = async (title: string, year?: number): Promise<string | null> => {
+    if (!API_KEY) {
+        console.error("VITE_TMDB_API_KEY environment variable is not set.");
+        return null;
+    }
+
     const query = encodeURIComponent(title);
     // Using 'multi' search to find both movies and TV shows
     const searchUrl = `${BASE_URL}/search/multi?api_key=${API_KEY}&query=${query}`;
-    
+
     try {
         const response = await fetch(searchUrl);
         if (!response.ok) {
