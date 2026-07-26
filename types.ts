@@ -20,3 +20,12 @@ export interface GroundingChunk {
     title: string;
   }
 }
+
+export interface FavoriteItem {
+  title: string;
+  year: number;
+  country: string;
+  posterUrl: string | null;
+  status: SearchResult['status'];
+  addedAt: number;
+}

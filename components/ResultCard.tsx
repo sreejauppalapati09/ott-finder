@@ -2,14 +2,17 @@
 import React from 'react';
 import { SearchResult, GroundingChunk } from '../types';
 import { PlatformLogo } from './PlatformLogo';
+import { HeartIcon } from './icons/HeartIcon';
 
 interface ResultCardProps {
     result: SearchResult;
     sources: GroundingChunk[];
     posterUrl: string | null;
+    isFavorite: boolean;
+    onToggleFavorite: () => void;
 }
 
-export const ResultCard: React.FC<ResultCardProps> = ({ result, sources, posterUrl }) => {
+export const ResultCard: React.FC<ResultCardProps> = ({ result, sources, posterUrl, isFavorite, onToggleFavorite }) => {
     const renderStatusBadge = () => {
         switch (result.status) {
             case 'streaming':
@@ -31,8 +34,20 @@ export const ResultCard: React.FC<ResultCardProps> = ({ result, sources, posterU
                     {result.year && <span className="text-2xl text-gray-400 font-normal ml-2">({result.year})</span>}
                 </h2>
                 {renderStatusBadge()}
+                <button
+                    onClick={onToggleFavorite}
+                    aria-label={isFavorite ? `Remove ${result.title} from favorites` : `Add ${result.title} to favorites`}
+                    aria-pressed={isFavorite}
+                    className={`ml-auto flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full border transition-colors duration-200 ${
+                        isFavorite
+                            ? 'bg-pink-500/20 border-pink-500 text-pink-400'
+                            : 'bg-gray-700/60 border-gray-600 text-gray-400 hover:text-pink-400 hover:border-pink-500'
+                    }`}
+                >
+                    <HeartIcon filled={isFavorite} />
+                </button>
             </div>
-            
+
             <p className="text-gray-300 mb-6">{result.summary}</p>
             
             {result.status === 'streaming' && (

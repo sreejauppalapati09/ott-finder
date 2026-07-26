@@ -1,12 +1,14 @@
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { SearchBar } from './components/SearchBar';
 import { ResultCard } from './components/ResultCard';
 import { Loader } from './components/Loader';
-import { findStreamingPlatforms, getAlternativeSuggestions } from './services/geminiService';
+import { FavoritesList } from './components/FavoritesList';
+import { findStreamingPlatforms, getAlternativeSuggestions } from './services/claudeService';
 import { fetchPosterPath } from './services/tmdbService';
 import { getBackgroundImage } from './services/backgroundImageService';
-import { SearchResult, GroundingChunk } from './types';
+import { getFavorites, toggleFavorite, removeFavorite } from './services/favoritesService';
+import { SearchResult, GroundingChunk, FavoriteItem } from './types';
 
 const countries = [
     'United States', 'India', 'United Kingdom', 'Canada', 'Australia', 
@@ -30,6 +32,12 @@ const App: React.FC = () => {
     const [backgroundUrl, setBackgroundUrl] = useState<string>('');
     const [suggestions, setSuggestions] = useState<string[]>([]);
     const [searchQuery, setSearchQuery] = useState<string>('');
+    const [view, setView] = useState<'search' | 'favorites'>('search');
+    const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
+
+    useEffect(() => {
+        setFavorites(getFavorites());
+    }, []);
 
     useEffect(() => {
         // Preload the image to prevent flickering
@@ -41,8 +49,11 @@ const App: React.FC = () => {
         };
     }, [country]);
 
-    const handleSearch = useCallback(async (query: string) => {
+    const handleSearch = useCallback(async (query: string, overrides?: { country?: string; genre?: string }) => {
         if (!query.trim()) return;
+
+        const effectiveCountry = overrides?.country ?? country;
+        const effectiveGenre = overrides?.genre ?? genre;
 
         setIsLoading(true);
         setError(null);
@@ -52,10 +63,12 @@ const App: React.FC = () => {
         setSearched(true);
         setSuggestions([]);
         setSearchQuery(query);
+        if (overrides?.country && overrides.country !== country) setCountry(overrides.country);
+        if (overrides?.genre && overrides.genre !== genre) setGenre(overrides.genre);
 
         try {
-            const { result, sources: newSources } = await findStreamingPlatforms(query, country, genre);
-            
+            const { result, sources: newSources } = await findStreamingPlatforms(query, effectiveCountry, effectiveGenre);
+
             if (result && result.title) {
                 setSearchResult(result);
                 setSources(newSources);
@@ -77,6 +90,34 @@ const App: React.FC = () => {
             setIsLoading(false);
         }
     }, [country, genre]);
+
+    const currentIsFavorite = useMemo(() => {
+        if (!searchResult) return false;
+        return favorites.some(f =>
+            f.title.toLowerCase() === searchResult.title.toLowerCase() && f.year === searchResult.year
+        );
+    }, [favorites, searchResult]);
+
+    const handleToggleFavorite = useCallback(() => {
+        if (!searchResult) return;
+        const updated = toggleFavorite({
+            title: searchResult.title,
+            year: searchResult.year,
+            country,
+            posterUrl,
+            status: searchResult.status,
+        });
+        setFavorites(updated);
+    }, [searchResult, posterUrl, country]);
+
+    const handleSelectFavorite = useCallback((item: FavoriteItem) => {
+        setView('search');
+        handleSearch(item.title, { country: item.country, genre: 'All Genres' });
+    }, [handleSearch]);
+
+    const handleRemoveFavorite = useCallback((title: string, year: number) => {
+        setFavorites(removeFavorite(title, year));
+    }, []);
 
     const renderContent = () => {
         if (isLoading) {
@@ -113,7 +154,15 @@ const App: React.FC = () => {
             );
         }
         if (searchResult) {
-            return <ResultCard result={searchResult} sources={sources} posterUrl={posterUrl} />;
+            return (
+                <ResultCard
+                    result={searchResult}
+                    sources={sources}
+                    posterUrl={posterUrl}
+                    isFavorite={currentIsFavorite}
+                    onToggleFavorite={handleToggleFavorite}
+                />
+            );
         }
         return (
             <div className="text-center text-gray-400 mt-8">
@@ -145,23 +194,59 @@ const App: React.FC = () => {
                     </header>
 
                     <main>
-                        <SearchBar 
-                            onSearch={handleSearch} 
-                            isLoading={isLoading}
-                            countries={countries}
-                            selectedCountry={country}
-                            onCountryChange={setCountry}
-                            genres={genres}
-                            selectedGenre={genre}
-                            onGenreChange={setGenre}
-                            initialQuery={searchQuery}
-                        />
-                        <div className="mt-10">
-                            {renderContent()}
+                        <div className="flex justify-center gap-3 mb-8">
+                            <button
+                                onClick={() => setView('search')}
+                                className={`px-6 py-2 rounded-full font-medium transition-colors duration-200 border ${
+                                    view === 'search'
+                                        ? 'bg-purple-600 border-purple-600 text-white'
+                                        : 'bg-gray-800/50 border-gray-700 text-gray-400 hover:text-white'
+                                }`}
+                            >
+                                Search
+                            </button>
+                            <button
+                                onClick={() => setView('favorites')}
+                                className={`px-6 py-2 rounded-full font-medium transition-colors duration-200 border flex items-center gap-2 ${
+                                    view === 'favorites'
+                                        ? 'bg-purple-600 border-purple-600 text-white'
+                                        : 'bg-gray-800/50 border-gray-700 text-gray-400 hover:text-white'
+                                }`}
+                            >
+                                Favorites
+                                {favorites.length > 0 && (
+                                    <span className="px-2 py-0.5 text-xs rounded-full bg-black/20">{favorites.length}</span>
+                                )}
+                            </button>
                         </div>
+
+                        {view === 'search' ? (
+                            <>
+                                <SearchBar
+                                    onSearch={handleSearch}
+                                    isLoading={isLoading}
+                                    countries={countries}
+                                    selectedCountry={country}
+                                    onCountryChange={setCountry}
+                                    genres={genres}
+                                    selectedGenre={genre}
+                                    onGenreChange={setGenre}
+                                    initialQuery={searchQuery}
+                                />
+                                <div className="mt-10">
+                                    {renderContent()}
+                                </div>
+                            </>
+                        ) : (
+                            <FavoritesList
+                                favorites={favorites}
+                                onSelect={handleSelectFavorite}
+                                onRemove={handleRemoveFavorite}
+                            />
+                        )}
                     </main>
                      <footer className="text-center text-gray-500 mt-16 text-sm">
-                        <p>Powered by Google Gemini &amp; The Movie DB</p>
+                        <p>Powered by Claude &amp; The Movie DB</p>
                     </footer>
                 </div>
             </div>
