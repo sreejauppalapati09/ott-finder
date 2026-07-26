@@ -16,7 +16,7 @@ View your app in AI Studio: https://ai.studio/apps/drive/1nom3xbMspk3QvfZyH97tr0
 1. Install dependencies:
    `npm install`
 2. Copy [.env.local.example](.env.local.example) to `.env.local` and fill in:
-   - `GEMINI_API_KEY` - your Gemini API key
+   - `ANTHROPIC_API_KEY` - your Anthropic (Claude) API key
    - `VITE_TMDB_API_KEY` - your TMDB API key (get one at https://www.themoviedb.org/settings/api)
 3. Run the app:
    `npm run dev`

@@ -4,7 +4,7 @@ import { SearchBar } from './components/SearchBar';
 import { ResultCard } from './components/ResultCard';
 import { Loader } from './components/Loader';
 import { FavoritesList } from './components/FavoritesList';
-import { findStreamingPlatforms, getAlternativeSuggestions } from './services/geminiService';
+import { findStreamingPlatforms, getAlternativeSuggestions } from './services/claudeService';
 import { fetchPosterPath } from './services/tmdbService';
 import { getBackgroundImage } from './services/backgroundImageService';
 import { getFavorites, toggleFavorite, removeFavorite } from './services/favoritesService';
@@ -246,7 +246,7 @@ const App: React.FC = () => {
                         )}
                     </main>
                      <footer className="text-center text-gray-500 mt-16 text-sm">
-                        <p>Powered by Google Gemini &amp; The Movie DB</p>
+                        <p>Powered by Claude &amp; The Movie DB</p>
                     </footer>
                 </div>
             </div>
